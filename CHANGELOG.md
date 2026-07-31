@@ -13,3 +13,4 @@ All notable changes follow semantic versioning.
 - Automated unit, structure, metadata, and specification validation.
 - Strict validation for recovery fields, nested records, task identifiers, and changed-file paths.
 - Explicit blocker lifecycle with `--clear-blockers` and placeholder rejection.
+- Complete Simplified Chinese documentation in `README_CN.md` with reciprocal language navigation.

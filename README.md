@@ -1,5 +1,7 @@
 # Tracking Project Progress
 
+English | [简体中文](README_CN.md)
+
 A portable Agent Skill and Claude Code plugin that gives coding agents a durable, project-local progress board. It is designed for the awkward moment when a long implementation is interrupted and a fresh model has to rediscover what happened.
 
 The board captures only continuation-critical state: objective, current focus, task status, decisions, changed files, verification evidence, blockers, and one concrete next action.
@@ -158,4 +160,3 @@ Behavioral evaluation prompts and preserved baseline results live in [`evals/`](
 ## License
 
 Apache-2.0. See [`LICENSE`](LICENSE).
-
