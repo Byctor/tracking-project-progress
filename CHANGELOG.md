@@ -9,6 +9,7 @@ All notable changes follow semantic versioning.
 - Portable `tracking-project-progress` Agent Skill.
 - Atomic project-board CLI with human-readable rendering and event history.
 - Claude Code hooks for session resume, changed-file capture, and checkpoint enforcement.
-- Behavioral evaluation scenarios and preserved no-Skill baselines.
+- Behavioral evaluation scenarios, preserved no-Skill baselines, and three passing Skill-enabled runs.
 - Automated unit, structure, metadata, and specification validation.
-
+- Strict validation for recovery fields, nested records, task identifiers, and changed-file paths.
+- Explicit blocker lifecycle with `--clear-blockers` and placeholder rejection.
