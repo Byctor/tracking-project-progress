@@ -146,6 +146,54 @@ class ProjectBoardTests(unittest.TestCase):
         self.assertIn("outside", result.stderr.lower())
         self.assertEqual(load_state(self.root)["changed_files"], [])
 
+    def test_checkpoint_rejects_blank_recovery_fields(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Durable handoff").returncode, 0)
+
+        for flag, value in (("--summary", "  "), ("--focus", "\t"), ("--next", "\n")):
+            arguments = {
+                "--summary": "Implemented the parser",
+                "--focus": "Parser verification",
+                "--next": "Run the full test suite",
+            }
+            arguments[flag] = value
+            result = run_cli(
+                self.root,
+                "checkpoint",
+                "--summary",
+                arguments["--summary"],
+                "--focus",
+                arguments["--focus"],
+                "--next",
+                arguments["--next"],
+            )
+
+            self.assertEqual(result.returncode, 2, (flag, result.stderr))
+
+        self.assertEqual(load_state(self.root)["revision"], 1)
+
+    def test_validate_rejects_blank_recovery_state(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Validate handoff").returncode, 0)
+        state_path = self.root / ".project-board" / "state.json"
+
+        for field_path in (("current_focus",), ("next_action",), ("session", "last_summary")):
+            state = load_state(self.root)
+            target = state
+            for key in field_path[:-1]:
+                target = target[key]
+            target[field_path[-1]] = "   "
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            result = run_cli(self.root, "validate")
+
+            self.assertEqual(result.returncode, 2, (field_path, result.stderr))
+            self.assertIn("non-empty", result.stderr)
+            state = load_state(self.root)
+            target = state
+            for key in field_path[:-1]:
+                target = target[key]
+            target[field_path[-1]] = "restored"
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
     def test_corrupt_state_is_preserved(self) -> None:
         board_dir = self.root / ".project-board"
         board_dir.mkdir()

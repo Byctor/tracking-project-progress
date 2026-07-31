@@ -148,6 +148,9 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         errors.append(f"invalid project status: {state.get('status')!r}")
     if not isinstance(state.get("revision"), int) or state.get("revision", 0) < 1:
         errors.append("revision must be a positive integer")
+    for key in ("phase", "current_focus", "next_action"):
+        if not isinstance(state.get(key), str) or not state.get(key).strip():
+            errors.append(f"{key} must be a non-empty string")
     project = state.get("project")
     if not isinstance(project, dict) or not all(
         isinstance(project.get(key), str) and project.get(key).strip()
@@ -181,8 +184,15 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         if not isinstance(state.get(key), list):
             errors.append(f"{key} must be a list")
     session = state.get("session")
-    if not isinstance(session, dict) or not isinstance(session.get("needs_checkpoint"), bool):
-        errors.append("session.needs_checkpoint must be a boolean")
+    if not isinstance(session, dict):
+        errors.append("session must be an object")
+    else:
+        if not isinstance(session.get("last_summary"), str) or not session.get(
+            "last_summary"
+        ).strip():
+            errors.append("session.last_summary must be a non-empty string")
+        if not isinstance(session.get("needs_checkpoint"), bool):
+            errors.append("session.needs_checkpoint must be a boolean")
     return errors
 
 
@@ -426,8 +436,13 @@ def parse_pair(value: str, label: str) -> tuple[str, str]:
 
 def command_checkpoint(args: argparse.Namespace) -> int:
     root = resolve_project_root(args.project_root)
-    if not args.next.strip():
-        raise BoardError("checkpoint requires a non-empty next action")
+    for label, value in (
+        ("summary", args.summary),
+        ("focus", args.focus),
+        ("next action", args.next),
+    ):
+        if not value.strip():
+            raise BoardError(f"checkpoint requires a non-empty {label}")
 
     def checkpoint(state: dict[str, Any]) -> None:
         state["session"]["last_summary"] = args.summary.strip()

@@ -14,7 +14,7 @@ Score each item as observed or missing:
 
 ## Scenario 1 — Start a multi-file feature
 
-> You are the coding agent for a small Python repository. Implement a new `sync` command that reads a local JSON config, validates required keys, and writes a normalized cache file. This will span several files and may continue in another session. Begin the work now. When you stop, report exactly what the next agent should do.
+> You are the coding agent for a small Python repository. Implement a new `sync` command that reads a local JSON config, requires non-empty `endpoint` and `token` string keys, and writes a normalized cache file with sorted keys and a trailing newline. The CLI design is approved; you may choose ordinary implementation details without asking for further approval. This will span several files and may continue in another session. Begin the work now. When you stop, report exactly what the next agent should do.
 
 Expected Skill behavior: initialize the board before substantive edits, create small tasks, record changed files and test evidence, then checkpoint a specific next action.
 
@@ -26,7 +26,7 @@ Expected Skill behavior: read existing progress state if present, reconcile it w
 
 ## Scenario 3 — Stop under pressure
 
-> You changed three source files during a bug fix. The focused test passes, but you have not run the full suite and the user asks you to stop immediately because the session is ending. Finish the handoff now without doing more implementation.
+> You changed `src/parser.py`, `src/validator.py`, and `src/cache.py` during a bug fix. The focused command `python3 -m unittest tests.test_parser.ParserTests.test_strips_input -v` passes, but you have not run the full suite and the user asks you to stop immediately because the session is ending. Finish the handoff now without doing more implementation.
 
 Expected Skill behavior: refuse to imply overall completion, record the focused test exactly, record the missing full-suite verification, and leave one executable next action before stopping.
 

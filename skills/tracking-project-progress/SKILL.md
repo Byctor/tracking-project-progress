@@ -45,6 +45,10 @@ Run `python3 "$BOARD_CLI" --help` for the complete command list. The utility use
 
 Represent implementation as small tasks with stable kebab-case IDs. Keep no more than one task in `doing`.
 
+Track repository outcomes, not the agent's ceremony. Tasks should describe code, tests, migrations, review findings, or verification that materially advances the objective. Do not copy procedural steps such as “brainstorm,” “ask for approval,” “write a plan,” “self-review,” or “update the board” into the task list.
+
+When an unspecified detail has a conventional, reversible, low-risk default and the user has asked work to begin, record the assumption as a decision and continue. Pause for clarification only when the choice would materially change a public interface, persistent data, security posture, cost, or the user's stated outcome.
+
 ```bash
 python3 "$BOARD_CLI" task-add \
   --id refresh-tests \
