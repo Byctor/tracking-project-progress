@@ -23,6 +23,7 @@ PROJECT_STATUSES = {"active", "blocked", "complete"}
 TASK_STATUSES = {"todo", "doing", "done", "blocked"}
 LOCK_TIMEOUT_SECONDS = 3.0
 STALE_LOCK_SECONDS = 30.0
+PLACEHOLDER_BLOCKERS = {"none", "n/a", "no blocker", "no blockers"}
 
 
 class BoardError(Exception):
@@ -238,8 +239,13 @@ def validate_state(state: dict[str, Any]) -> list[str]:
     blockers = state.get("blockers")
     if not isinstance(blockers, list):
         errors.append("blockers must be a list")
-    elif any(not isinstance(blocker, str) or not blocker.strip() for blocker in blockers):
-        errors.append("blockers must contain only non-empty strings")
+    elif any(
+        not isinstance(blocker, str)
+        or not blocker.strip()
+        or blocker.strip().lower() in PLACEHOLDER_BLOCKERS
+        for blocker in blockers
+    ):
+        errors.append("blockers must contain only real, non-empty descriptions")
     else:
         if state.get("status") == "blocked" and not blockers:
             errors.append("blocked project status requires at least one blocker")
@@ -505,8 +511,7 @@ def command_checkpoint(args: argparse.Namespace) -> int:
     ):
         if not value.strip():
             raise BoardError(f"checkpoint requires a non-empty {label}")
-    placeholder_blockers = {"none", "n/a", "no blocker", "no blockers"}
-    if any(blocker.strip().lower() in placeholder_blockers for blocker in args.blocker):
+    if any(blocker.strip().lower() in PLACEHOLDER_BLOCKERS for blocker in args.blocker):
         raise BoardError("omit --blocker when no real blocker exists")
 
     def checkpoint(state: dict[str, Any]) -> None:

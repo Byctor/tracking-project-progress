@@ -209,6 +209,7 @@ class ProjectBoardTests(unittest.TestCase):
             ),
             lambda state: state["changed_files"].append("../outside.py"),
             lambda state: state["blockers"].append("  "),
+            lambda state: state["blockers"].append("None"),
         )
 
         for mutate in invalid_mutations:
