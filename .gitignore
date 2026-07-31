@@ -11,3 +11,6 @@ build/
 
 # The repository's own board is local runtime state, not source.
 .project-board/
+
+# Local isolated development worktrees.
+.worktrees/
