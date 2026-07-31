@@ -96,6 +96,8 @@ python3 "$BOARD_CLI" checkpoint \
 
 Use repeated `--verification`, `--decision`, or `--blocker` flags when needed. Pair values use `left::right`; see [the board schema](references/board-schema.md).
 
+Record only real, active blockers. Omit `--blocker` when none exist, and pass `--clear-blockers` once resolved. A `blocked` checkpoint requires at least one blocker; a `complete` checkpoint cannot retain blockers.
+
 A valid checkpoint contains:
 
 - a factual summary of completed and incomplete work;

@@ -27,11 +27,13 @@
 | `decisions` | array | Timestamp, decision, and rationale |
 | `verifications` | array | Timestamp, exact command, and observed outcome |
 | `changed_files` | array | De-duplicated project-relative POSIX paths |
-| `blockers` | array | Active blocker descriptions |
+| `blockers` | array | Real active blocker descriptions; no placeholder values |
 | `session.last_summary` | string | Concise recovery summary |
 | `session.needs_checkpoint` | boolean | Set by code-file capture; cleared by checkpoint |
 
 At most one task may be `doing`. A project marked `complete` still requires a non-empty `next_action`, such as “No further action; objective verified,” so resuming agents do not infer work from an empty field.
+
+A project with status `blocked` requires at least one blocker. A project with status `complete` cannot retain active blockers. Use checkpoint `--clear-blockers` when previously recorded blockers are resolved.
 
 ## Pair arguments
 

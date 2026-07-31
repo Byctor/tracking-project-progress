@@ -246,6 +246,73 @@ class ProjectBoardTests(unittest.TestCase):
         self.assertEqual(empty_title.returncode, 2, empty_title.stderr)
         self.assertEqual(load_state(self.root)["tasks"], [])
 
+    def test_checkpoint_can_clear_resolved_blockers(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Resolve blocker").returncode, 0)
+        blocked = run_cli(
+            self.root,
+            "checkpoint",
+            "--summary",
+            "Cannot run integration tests",
+            "--focus",
+            "Integration verification",
+            "--next",
+            "Obtain test credentials",
+            "--status",
+            "blocked",
+            "--blocker",
+            "Missing test credentials",
+        )
+        self.assertEqual(blocked.returncode, 0, blocked.stderr)
+
+        resumed = run_cli(
+            self.root,
+            "checkpoint",
+            "--summary",
+            "Credentials received",
+            "--focus",
+            "Integration verification",
+            "--next",
+            "Run integration tests",
+            "--status",
+            "active",
+            "--clear-blockers",
+        )
+
+        self.assertEqual(resumed.returncode, 0, resumed.stderr)
+        self.assertEqual(load_state(self.root)["blockers"], [])
+
+    def test_blocked_status_requires_a_real_blocker(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Track blockers").returncode, 0)
+
+        missing = run_cli(
+            self.root,
+            "checkpoint",
+            "--summary",
+            "Work paused",
+            "--focus",
+            "External dependency",
+            "--next",
+            "Wait for dependency",
+            "--status",
+            "blocked",
+        )
+        placeholder = run_cli(
+            self.root,
+            "checkpoint",
+            "--summary",
+            "Work paused",
+            "--focus",
+            "External dependency",
+            "--next",
+            "Wait for dependency",
+            "--blocker",
+            "None",
+        )
+
+        self.assertEqual(missing.returncode, 2, missing.stderr)
+        self.assertEqual(placeholder.returncode, 2, placeholder.stderr)
+        self.assertEqual(load_state(self.root)["revision"], 1)
+
     def test_corrupt_state_is_preserved(self) -> None:
         board_dir = self.root / ".project-board"
         board_dir.mkdir()

@@ -240,6 +240,11 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         errors.append("blockers must be a list")
     elif any(not isinstance(blocker, str) or not blocker.strip() for blocker in blockers):
         errors.append("blockers must contain only non-empty strings")
+    else:
+        if state.get("status") == "blocked" and not blockers:
+            errors.append("blocked project status requires at least one blocker")
+        if state.get("status") == "complete" and blockers:
+            errors.append("complete project status cannot retain active blockers")
     session = state.get("session")
     if not isinstance(session, dict):
         errors.append("session must be an object")
@@ -500,6 +505,9 @@ def command_checkpoint(args: argparse.Namespace) -> int:
     ):
         if not value.strip():
             raise BoardError(f"checkpoint requires a non-empty {label}")
+    placeholder_blockers = {"none", "n/a", "no blocker", "no blockers"}
+    if any(blocker.strip().lower() in placeholder_blockers for blocker in args.blocker):
+        raise BoardError("omit --blocker when no real blocker exists")
 
     def checkpoint(state: dict[str, Any]) -> None:
         state["session"]["last_summary"] = args.summary.strip()
@@ -507,6 +515,8 @@ def command_checkpoint(args: argparse.Namespace) -> int:
         state["current_focus"] = args.focus.strip()
         state["next_action"] = args.next.strip()
         state["status"] = args.status
+        if args.clear_blockers:
+            state["blockers"] = []
         if args.phase:
             state["phase"] = args.phase.strip()
         for value in args.verification:
@@ -596,6 +606,11 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint.add_argument("--verification", action="append", default=[])
     checkpoint.add_argument("--decision", action="append", default=[])
     checkpoint.add_argument("--blocker", action="append", default=[])
+    checkpoint.add_argument(
+        "--clear-blockers",
+        action="store_true",
+        help="Remove resolved blockers before adding any new --blocker values",
+    )
     add_project_root(checkpoint)
     checkpoint.set_defaults(handler=command_checkpoint)
 
