@@ -6,13 +6,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterator
 
 
@@ -148,7 +149,7 @@ def validate_state(state: dict[str, Any]) -> list[str]:
         errors.append(f"invalid project status: {state.get('status')!r}")
     if not isinstance(state.get("revision"), int) or state.get("revision", 0) < 1:
         errors.append("revision must be a positive integer")
-    for key in ("phase", "current_focus", "next_action"):
+    for key in ("created_at", "updated_at", "phase", "current_focus", "next_action"):
         if not isinstance(state.get(key), str) or not state.get(key).strip():
             errors.append(f"{key} must be a non-empty string")
     project = state.get("project")
@@ -168,21 +169,77 @@ def validate_state(state: dict[str, Any]) -> list[str]:
                 errors.append("each task must be an object")
                 continue
             task_id = task.get("id")
-            if not isinstance(task_id, str) or not task_id:
-                errors.append("each task requires a non-empty id")
+            if not isinstance(task_id, str) or not re.fullmatch(
+                r"[a-z0-9]+(?:-[a-z0-9]+)*", task_id
+            ):
+                errors.append("each task id must use lowercase kebab-case")
             elif task_id in identifiers:
                 errors.append(f"duplicate task id: {task_id}")
             else:
                 identifiers.add(task_id)
+            if not isinstance(task.get("title"), str) or not task.get("title").strip():
+                errors.append(f"task {task_id!r} requires a non-empty title")
+            if not isinstance(task.get("notes"), str):
+                errors.append(f"task {task_id!r} notes must be a string")
             if task.get("status") not in TASK_STATUSES:
                 errors.append(f"invalid task status for {task_id!r}: {task.get('status')!r}")
             if task.get("status") == "doing":
                 doing += 1
         if doing > 1:
             errors.append("only one task may have status 'doing'")
-    for key in ("decisions", "verifications", "changed_files", "blockers"):
-        if not isinstance(state.get(key), list):
-            errors.append(f"{key} must be a list")
+    decisions = state.get("decisions")
+    if not isinstance(decisions, list):
+        errors.append("decisions must be a list")
+    else:
+        for index, decision in enumerate(decisions):
+            if not isinstance(decision, dict) or not all(
+                isinstance(decision.get(key), str) and decision.get(key).strip()
+                for key in ("at", "decision", "rationale")
+            ):
+                errors.append(
+                    f"decision at index {index} requires non-empty at, decision, and rationale strings"
+                )
+
+    verifications = state.get("verifications")
+    if not isinstance(verifications, list):
+        errors.append("verifications must be a list")
+    else:
+        for index, verification in enumerate(verifications):
+            if not isinstance(verification, dict) or not all(
+                isinstance(verification.get(key), str) and verification.get(key).strip()
+                for key in ("at", "command", "outcome")
+            ):
+                errors.append(
+                    f"verification at index {index} requires non-empty at, command, and outcome strings"
+                )
+
+    changed_files = state.get("changed_files")
+    if not isinstance(changed_files, list):
+        errors.append("changed_files must be a list")
+    else:
+        seen_paths: set[str] = set()
+        for value in changed_files:
+            path = PurePosixPath(value) if isinstance(value, str) else None
+            if (
+                path is None
+                or not value.strip()
+                or not path.parts
+                or path.is_absolute()
+                or path.as_posix() != value
+                or ".." in path.parts
+                or path.parts[0] in {".git", BOARD_DIR_NAME}
+            ):
+                errors.append(f"invalid project-relative changed file: {value!r}")
+            elif value in seen_paths:
+                errors.append(f"duplicate changed file: {value}")
+            else:
+                seen_paths.add(value)
+
+    blockers = state.get("blockers")
+    if not isinstance(blockers, list):
+        errors.append("blockers must be a list")
+    elif any(not isinstance(blocker, str) or not blocker.strip() for blocker in blockers):
+        errors.append("blockers must contain only non-empty strings")
     session = state.get("session")
     if not isinstance(session, dict):
         errors.append("session must be an object")

@@ -194,6 +194,58 @@ class ProjectBoardTests(unittest.TestCase):
             target[field_path[-1]] = "restored"
             state_path.write_text(json.dumps(state), encoding="utf-8")
 
+    def test_validate_rejects_malformed_nested_entries_and_paths(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Validate nested data").returncode, 0)
+        state_path = self.root / ".project-board" / "state.json"
+        invalid_mutations = (
+            lambda state: state["tasks"].append(
+                {"id": "Not Kebab", "title": "", "status": "todo", "notes": 7}
+            ),
+            lambda state: state["decisions"].append(
+                {"at": "", "decision": "", "rationale": "because"}
+            ),
+            lambda state: state["verifications"].append(
+                {"at": "now", "command": "", "outcome": "pass"}
+            ),
+            lambda state: state["changed_files"].append("../outside.py"),
+            lambda state: state["blockers"].append("  "),
+        )
+
+        for mutate in invalid_mutations:
+            state = load_state(self.root)
+            mutate(state)
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            result = run_cli(self.root, "validate")
+
+            self.assertEqual(result.returncode, 2, result.stderr)
+            state_path.unlink()
+            self.assertEqual(run_cli(self.root, "ensure", "--objective", "Validate nested data").returncode, 0)
+
+    def test_task_add_rejects_invalid_identifier_and_empty_title(self) -> None:
+        self.assertEqual(run_cli(self.root, "ensure", "--objective", "Valid tasks").returncode, 0)
+
+        invalid_id = run_cli(
+            self.root,
+            "task-add",
+            "--id",
+            "Build Feature",
+            "--title",
+            "Build the feature",
+        )
+        empty_title = run_cli(
+            self.root,
+            "task-add",
+            "--id",
+            "build-feature",
+            "--title",
+            "  ",
+        )
+
+        self.assertEqual(invalid_id.returncode, 2, invalid_id.stderr)
+        self.assertEqual(empty_title.returncode, 2, empty_title.stderr)
+        self.assertEqual(load_state(self.root)["tasks"], [])
+
     def test_corrupt_state_is_preserved(self) -> None:
         board_dir = self.root / ".project-board"
         board_dir.mkdir()
